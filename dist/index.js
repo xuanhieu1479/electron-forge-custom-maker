@@ -10,21 +10,22 @@ const path_1 = __importDefault(require("path"));
 class MakerSquirrel extends maker_base_1.default {
     constructor() {
         super(...arguments);
-        this.name = 'FolderTagger';
+        this.name = 'squirrel';
         this.defaultPlatforms = ['win32'];
     }
     isSupportedOnCurrentPlatform() {
-        return this.isInstalled('electron-winstaller');
+        return (this.isInstalled('electron-winstaller') &&
+            !process.env.DISABLE_SQUIRREL_TEST);
     }
-    async make({ dir, makeDir, targetArch, packageJSON }) {
-        const outPath = path_1.default.resolve(makeDir, `windows/${targetArch}`);
+    async make({ dir, makeDir, targetArch, packageJSON, appName }) {
+        const outPath = path_1.default.resolve(makeDir, `squirrel.windows/${targetArch}`);
         await this.ensureDirectory(outPath);
         const winstallerConfig = {
-            name: this.name,
-            title: this.name,
+            name: packageJSON.name,
+            title: appName,
             noMsi: true,
-            exe: `${this.name}.exe`,
-            setupExe: `${this.name}-${packageJSON.version} Setup.exe`,
+            exe: `${appName}.exe`,
+            setupExe: `${appName}-${packageJSON.version} Setup.exe`,
             ...this.config,
             appDirectory: dir,
             outputDirectory: outPath
@@ -33,13 +34,16 @@ class MakerSquirrel extends maker_base_1.default {
         const nupkgVersion = electron_winstaller_1.convertVersion(packageJSON.version);
         const artifacts = [
             path_1.default.resolve(outPath, 'RELEASES'),
-            path_1.default.resolve(outPath, winstallerConfig.setupExe || `${this.name} Setup.exe`),
+            path_1.default.resolve(outPath, winstallerConfig.setupExe || `${appName}Setup.exe`),
             path_1.default.resolve(outPath, `${winstallerConfig.name}-${nupkgVersion}-full.nupkg`)
         ];
-        // For auto updater
         const deltaPath = path_1.default.resolve(outPath, `${winstallerConfig.name}-${nupkgVersion}-delta.nupkg`);
         if (winstallerConfig.remoteReleases || fs_1.default.existsSync(deltaPath)) {
             artifacts.push(deltaPath);
+        }
+        const msiPath = path_1.default.resolve(outPath, winstallerConfig.setupMsi || `${appName}Setup.msi`);
+        if (!winstallerConfig.noMsi && fs_1.default.existsSync(msiPath)) {
+            artifacts.push(msiPath);
         }
         return artifacts;
     }

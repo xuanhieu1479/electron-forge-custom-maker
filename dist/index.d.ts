@@ -6,6 +6,6 @@ export default class MakerSquirrel extends MakerBase<MakerSquirrelConfig> {
     name: string;
     defaultPlatforms: ForgePlatform[];
     isSupportedOnCurrentPlatform(): boolean;
-    make({ dir, makeDir, targetArch, packageJSON }: MakerOptions): Promise<string[]>;
+    make({ dir, makeDir, targetArch, packageJSON, appName }: MakerOptions): Promise<string[]>;
 }
 export {};

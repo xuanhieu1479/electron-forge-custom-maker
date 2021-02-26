@@ -14,28 +14,33 @@ type MakerSquirrelConfig = Omit<
 >;
 
 export default class MakerSquirrel extends MakerBase<MakerSquirrelConfig> {
-  name = 'FolderTagger';
+  name = 'squirrel';
+
   defaultPlatforms: ForgePlatform[] = ['win32'];
 
   isSupportedOnCurrentPlatform(): boolean {
-    return this.isInstalled('electron-winstaller');
+    return (
+      this.isInstalled('electron-winstaller') &&
+      !process.env.DISABLE_SQUIRREL_TEST
+    );
   }
 
   async make({
     dir,
     makeDir,
     targetArch,
-    packageJSON
+    packageJSON,
+    appName
   }: MakerOptions): Promise<string[]> {
-    const outPath = path.resolve(makeDir, `windows/${targetArch}`);
+    const outPath = path.resolve(makeDir, `squirrel.windows/${targetArch}`);
     await this.ensureDirectory(outPath);
 
     const winstallerConfig: ElectronWinstallerOptions = {
-      name: this.name,
-      title: this.name,
+      name: packageJSON.name,
+      title: appName,
       noMsi: true,
-      exe: `${this.name}.exe`,
-      setupExe: `${this.name}-${packageJSON.version} Setup.exe`,
+      exe: `${appName}.exe`,
+      setupExe: `${appName}-${packageJSON.version} Setup.exe`,
       ...this.config,
       appDirectory: dir,
       outputDirectory: outPath
@@ -44,24 +49,28 @@ export default class MakerSquirrel extends MakerBase<MakerSquirrelConfig> {
     await createWindowsInstaller(winstallerConfig);
 
     const nupkgVersion = convertVersion(packageJSON.version);
+
     const artifacts = [
       path.resolve(outPath, 'RELEASES'),
-      path.resolve(
-        outPath,
-        winstallerConfig.setupExe || `${this.name} Setup.exe`
-      ),
+      path.resolve(outPath, winstallerConfig.setupExe || `${appName}Setup.exe`),
       path.resolve(
         outPath,
         `${winstallerConfig.name}-${nupkgVersion}-full.nupkg`
       )
     ];
-    // For auto updater
     const deltaPath = path.resolve(
       outPath,
       `${winstallerConfig.name}-${nupkgVersion}-delta.nupkg`
     );
     if (winstallerConfig.remoteReleases || fs.existsSync(deltaPath)) {
       artifacts.push(deltaPath);
+    }
+    const msiPath = path.resolve(
+      outPath,
+      winstallerConfig.setupMsi || `${appName}Setup.msi`
+    );
+    if (!winstallerConfig.noMsi && fs.existsSync(msiPath)) {
+      artifacts.push(msiPath);
     }
     return artifacts;
   }
