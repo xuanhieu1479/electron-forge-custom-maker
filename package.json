@@ -2,7 +2,8 @@
   "name": "electron-forge-custom-maker",
   "version": "1.0.0",
   "description": "Custom Electron Forge maker based on @electron-forge/maker-squirrel 6.0.0-beta.54",
-  "main": "index.ts",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,9 +18,12 @@
   },
   "homepage": "https://github.com/xuanhieu1479/electron-forge-custom-maker#readme",
   "dependencies": {
-    "prettier": "^2.2.1",
     "@electron-forge/maker-base": "6.0.0-beta.54",
     "@electron-forge/shared-types": "6.0.0-beta.54",
-    "electron-winstaller": "^4.0.1"
+    "electron-winstaller": "^4.0.1",
+    "typescript": "^4.2.2"
+  },
+  "devDependencies": {
+    "prettier": "^2.2.1"
   }
 }
