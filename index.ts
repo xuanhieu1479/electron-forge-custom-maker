@@ -7,6 +7,7 @@ import {
 } from 'electron-winstaller';
 import fs from 'fs';
 import path from 'path';
+import archiver from 'archiver';
 
 type MakerSquirrelConfig = Omit<
   ElectronWinstallerOptions,
@@ -58,6 +59,7 @@ export default class MakerSquirrel extends MakerBase<MakerSquirrelConfig> {
         `${winstallerConfig.name}-${nupkgVersion}-full.nupkg`
       )
     ];
+    // Delta Path is for auto updater
     const deltaPath = path.resolve(
       outPath,
       `${winstallerConfig.name}-${nupkgVersion}-delta.nupkg`
@@ -72,6 +74,24 @@ export default class MakerSquirrel extends MakerBase<MakerSquirrelConfig> {
     if (!winstallerConfig.noMsi && fs.existsSync(msiPath)) {
       artifacts.push(msiPath);
     }
-    return artifacts;
+
+    const zipName = `${appName}-${packageJSON.version} Setup.zip`;
+    const zipPath = `${outPath}\\${zipName}`;
+    const archive = archiver('zip', { zlib: { level: 0 } });
+    archive.pipe(fs.createWriteStream(zipPath));
+    artifacts.forEach(artifact => {
+      const tmp = artifact.split('\\');
+      const name = tmp[tmp.length - 1];
+      archive.file(artifact, { name });
+    });
+    await archive.finalize();
+
+    const files = fs.readdirSync(outPath, { withFileTypes: true });
+    files.forEach(file => {
+      const { name } = file;
+      if (!name.includes(zipName)) fs.unlinkSync(name);
+    });
+
+    return [zipPath];
   }
 }

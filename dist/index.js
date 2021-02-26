@@ -7,6 +7,7 @@ const maker_base_1 = __importDefault(require("@electron-forge/maker-base"));
 const electron_winstaller_1 = require("electron-winstaller");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const archiver_1 = __importDefault(require("archiver"));
 class MakerSquirrel extends maker_base_1.default {
     constructor() {
         super(...arguments);
@@ -37,6 +38,7 @@ class MakerSquirrel extends maker_base_1.default {
             path_1.default.resolve(outPath, winstallerConfig.setupExe || `${appName}Setup.exe`),
             path_1.default.resolve(outPath, `${winstallerConfig.name}-${nupkgVersion}-full.nupkg`)
         ];
+        // Delta Path is for auto updater
         const deltaPath = path_1.default.resolve(outPath, `${winstallerConfig.name}-${nupkgVersion}-delta.nupkg`);
         if (winstallerConfig.remoteReleases || fs_1.default.existsSync(deltaPath)) {
             artifacts.push(deltaPath);
@@ -45,7 +47,23 @@ class MakerSquirrel extends maker_base_1.default {
         if (!winstallerConfig.noMsi && fs_1.default.existsSync(msiPath)) {
             artifacts.push(msiPath);
         }
-        return artifacts;
+        const zipName = `${appName}-${packageJSON.version} Setup.zip`;
+        const zipPath = `${outPath}\\${zipName}`;
+        const archive = archiver_1.default('zip', { zlib: { level: 0 } });
+        archive.pipe(fs_1.default.createWriteStream(zipPath));
+        artifacts.forEach(artifact => {
+            const tmp = artifact.split('\\');
+            const name = tmp[tmp.length - 1];
+            archive.file(artifact, { name });
+        });
+        await archive.finalize();
+        const files = fs_1.default.readdirSync(outPath, { withFileTypes: true });
+        files.forEach(file => {
+            const { name } = file;
+            if (!name.includes(zipName))
+                fs_1.default.unlinkSync(name);
+        });
+        return [zipPath];
     }
 }
 exports.default = MakerSquirrel;
